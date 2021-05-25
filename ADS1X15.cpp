@@ -166,9 +166,20 @@ bool ADS1X15::begin(uint8_t sda, uint8_t scl)
 
 bool ADS1X15::begin()
 {
-  _wire->begin();
-  if ((_address < 0x48) || (_address > 0x4B)) return false;
-  if (! isConnected()) return false;
+  Wire.begin();
+  //if ((_address < 0x48) || (_address > 0x4B)) return false;
+  //Wire.setClock(1000000U); // Set I2C clock speed
+  Wire.setClock(100000U); // Set I2C clock speed
+  Wire.beginTransmission(_address);
+  uint8_t errorCode = Wire.endTransmission();
+  if (errorCode == 0)
+  {
+    //if ((_address < 0x48) || (_address > 0x4B)) return false;
+  }
+  else
+  {
+    return false;
+  }
   return true;
 }
 
