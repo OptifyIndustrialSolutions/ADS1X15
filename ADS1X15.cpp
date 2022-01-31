@@ -1,7 +1,7 @@
 //
 //    FILE: ADS1X15.cpp
 //  AUTHOR: Rob Tillaart
-// VERSION: 0.3.1
+// VERSION: 0.3.5
 //    DATE: 2013-03-24
 // PUPROSE: Arduino library for ADS1015 and ADS1115
 //     URL: https://github.com/RobTillaart/ADS1X15
@@ -20,6 +20,12 @@
 //  0.2.7   2020-09-27  redo readRegister() + getValue() + getError()
 //  0.3.0   2021-03-29  add Wire parameter to constructors.
 //  0.3.1   2021-04-25  #22, add get/setClock() for Wire speed + reset()
+//  0.3.2   2021-10-07  fix build-CI; update readme + add new examples
+//  0.3.3   2021-10-17  update build-CI (esp32), readme.md, keywords.txt
+//  0.3.4   2021-12-11  update library.json, license, minor edits incl layout)
+//                      add unit test constants.
+//  0.3.5   2022-01-21  fix #36 support for Nano Every
+
 
 
 #include "ADS1X15.h"
@@ -28,7 +34,7 @@
 #define ADS1115_CONVERSION_DELAY    8
 
 
-// Kept #defines a bit in line with Adafruits library.
+// Kept #defines a bit in line with Adafruit library.
 
 // REGISTERS
 #define ADS1X15_REG_CONVERT         0x00
@@ -68,19 +74,20 @@
 #define ADS1X15_MODE_CONTINUE       0x0000
 #define ADS1X15_MODE_SINGLE         0x0100
 
-// BIT 5-7      datarate sample per second  // (0..7) << 5
+// BIT 5-7      data rate sample per second  // (0..7) << 5
 /*
 differs for different devices, check datasheet or readme.md
-| datarate | ADS101x | ADS 111x |
-|:----:|----:|----:|
-| 0 | 128  | 8   |
-| 1 | 250  | 16  |
-| 2 | 490  | 32  |
-| 3 | 920  | 64  |
-| 4 | 1600 | 128 |
-| 5 | 2400 | 250 |
-| 6 | 3300 | 475 |
-| 7 | 3300 | 860 |
+
+| data rate | ADS101x | ADS 111x | Notes   |
+|:---------:|--------:|---------:|:-------:|
+|     0     |   128   |   8      | slowest |
+|     1     |   250   |   16     |         |
+|     2     |   490   |   32     |         |
+|     3     |   920   |   64     |         |
+|     4     |   1600  |   128    | default |
+|     5     |   2400  |   250    |         |
+|     6     |   3300  |   475    |         |
+|     7     |   3300  |   860    | fastest |
 */
 
 // BIT 4 comparator modi                    // 1 << 4
@@ -99,21 +106,22 @@ differs for different devices, check datasheet or readme.md
 #define ADS1X15_COMP_QUE_1_CONV         0x0000  // trigger alert after 1 convert
 #define ADS1X15_COMP_QUE_2_CONV         0x0001  // trigger alert after 2 converts
 #define ADS1X15_COMP_QUE_4_CONV         0x0002  // trigger alert after 4 converts
-#define ADS1X15_COMP_QUE_NONE           0x0003  // dosable comparator
+#define ADS1X15_COMP_QUE_NONE           0x0003  // disable comparator
 
 
 // _CONFIG masks
 //
-// | bit  | description |
-// |:----:|:----|
-// |  0   | # channels |
-// |  1   | -  |
-// |  2   | resolution |
-// |  3   | - |
-// |  4   | GAIN supported |
+// | bit  | description          |
+// |:----:|:---------------------|
+// |  0   | # channels           |
+// |  1   | -                    |
+// |  2   | resolution           |
+// |  3   | -                    |
+// |  4   | GAIN supported       |
 // |  5   | COMPARATOR supported |
-// |  6   | - |
-// |  7   | - |
+// |  6   | -                    |
+// |  7   | -                    |
+//
 #define ADS_CONF_CHAN_1  0x00
 #define ADS_CONF_CHAN_4  0x01
 #define ADS_CONF_RES_12  0x00
@@ -144,7 +152,7 @@ void ADS1X15::reset()
   setMode(1);      // _mode = ADS1X15_MODE_SINGLE;
   setDataRate(4);  // middle speed, depends on device.
 
-  // COMPARATOR vars   # see notes .h 
+  // COMPARATOR variables   # see notes .h
   _compMode       = 0;
   _compPol        = 1;
   _compLatch      = 0;
@@ -186,9 +194,14 @@ bool ADS1X15::begin()
 
 bool ADS1X15::isBusy()
 {
+  return isReady() == false;
+}
+
+
+bool ADS1X15::isReady()
+{
   uint16_t val = _readRegister(_address, ADS1X15_REG_CONFIG);
-  if ((val & ADS1X15_OS_NOT_BUSY) != 0) return false;
-  return true;
+  return ((val & ADS1X15_OS_NOT_BUSY) > 0);
 }
 
 
@@ -232,21 +245,21 @@ uint8_t ADS1X15::getGain()
 }
 
 
-float ADS1X15::toVoltage(int16_t val)
+float ADS1X15::toVoltage(int16_t value)
 {
-  if (val == 0) return 0;
+  if (value == 0) return 0;
 
   float volts = getMaxVoltage();
   if (volts < 0) return volts;
 
-  volts *= val;
+  volts *= value;
   if (_config & ADS_CONF_RES_16)
   {
-    volts /= 32767;  // val = 16 bits - sign bit = 15 bits mantissa
+    volts /= 32767;  // value = 16 bits - sign bit = 15 bits mantissa
   }
   else
   {
-    volts /= 2047;   // val = 12 bits - sign bit = 11 bit mantissa
+    volts /= 2047;   // value = 12 bits - sign bit = 11 bit mantissa
   }
   return volts;
 }
@@ -380,11 +393,17 @@ void ADS1X15::setWireClock(uint32_t clockSpeed)
 }
 
 
+//////////////////////////////////////////////////////
+//
+// EXPERIMENTAL
+//
+// see https://github.com/RobTillaart/ADS1X15/issues/22
+//     https://github.com/arduino/Arduino/issues/11457
 // TODO: get the real clock speed from the I2C interface if possible.
-// ESP ==> ??
 uint32_t ADS1X15::getWireClock()
 {
-#if defined(__AVR__)
+// UNO 328 and
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
   uint32_t speed = F_CPU / ((TWBR * 2) + 16);
   return speed;
 
@@ -396,7 +415,7 @@ uint32_t ADS1X15::getWireClock()
 // not supported.
 // return -1;
 
-#else  // best effort ...
+#else  // best effort is remembering it
   return _clockSpeed;
 #endif
 }
@@ -420,6 +439,7 @@ int16_t ADS1X15::_readADC(uint16_t readmode)
   return getValue();
 }
 
+
 void ADS1X15::_requestADC(uint16_t readmode)
 {
   // write to register is needed in continuous mode as other flags can be changed
@@ -438,6 +458,7 @@ void ADS1X15::_requestADC(uint16_t readmode)
   _writeRegister(_address, ADS1X15_REG_CONFIG, config);
 }
 
+
 bool ADS1X15::_writeRegister(uint8_t address, uint8_t reg, uint16_t value)
 {
   _wire->beginTransmission(address);
@@ -447,14 +468,15 @@ bool ADS1X15::_writeRegister(uint8_t address, uint8_t reg, uint16_t value)
   return (_wire->endTransmission() == 0);
 }
 
+
 uint16_t ADS1X15::_readRegister(uint8_t address, uint8_t reg)
 {
   _wire->beginTransmission(address);
   _wire->write(reg);
   _wire->endTransmission();
 
-  int rv = _wire->requestFrom(address, (uint8_t) 2);
-  if (rv == 2) 
+  int rv = _wire->requestFrom((int) address, (int) 2);
+  if (rv == 2)
   {
     uint16_t value = _wire->read() << 8;
     value += _wire->read();
@@ -508,25 +530,30 @@ ADS1015::ADS1015(uint8_t address, TwoWire *wire)
   _maxPorts = 4;
 }
 
+
 int16_t ADS1015::readADC_Differential_0_3()
 {
   return _readADC(ADS1X15_MUX_DIFF_0_3);
 }
+
 
 int16_t ADS1015::readADC_Differential_1_3()
 {
   return _readADC(ADS1X15_MUX_DIFF_1_3);
 }
 
+
 int16_t ADS1015::readADC_Differential_2_3()
 {
   return _readADC(ADS1X15_MUX_DIFF_2_3);
 }
 
+
 int16_t ADS1015::readADC_Differential_0_2()
 {
   return readADC(2) - readADC(0);
 }
+
 
 int16_t ADS1015::readADC_Differential_1_2()
 {
@@ -534,16 +561,17 @@ int16_t ADS1015::readADC_Differential_1_2()
 }
 
 
-
 void ADS1015::requestADC_Differential_0_3()
 {
   _requestADC(ADS1X15_MUX_DIFF_0_3);
 }
 
+
 void ADS1015::requestADC_Differential_1_3()
 {
   _requestADC(ADS1X15_MUX_DIFF_1_3);
 }
+
 
 void ADS1015::requestADC_Differential_2_3()
 {
@@ -595,44 +623,54 @@ ADS1115::ADS1115(uint8_t address, TwoWire *wire)
   _maxPorts = 4;
 }
 
+
 int16_t ADS1115::readADC_Differential_0_3()
 {
   return _readADC(ADS1X15_MUX_DIFF_0_3);
 }
+
 
 int16_t ADS1115::readADC_Differential_1_3()
 {
   return _readADC(ADS1X15_MUX_DIFF_1_3);
 }
 
+
 int16_t ADS1115::readADC_Differential_2_3()
 {
   return _readADC(ADS1X15_MUX_DIFF_2_3);
 }
+
 
 int16_t ADS1115::readADC_Differential_0_2()
 {
   return readADC(2) - readADC(0);
 }
 
+
 int16_t ADS1115::readADC_Differential_1_2()
 {
   return readADC(2) - readADC(1);;
 }
+
 
 void ADS1115::requestADC_Differential_0_3()
 {
   _requestADC(ADS1X15_MUX_DIFF_0_3);
 }
 
+
 void ADS1115::requestADC_Differential_1_3()
 {
   _requestADC(ADS1X15_MUX_DIFF_1_3);
 }
+
 
 void ADS1115::requestADC_Differential_2_3()
 {
   _requestADC(ADS1X15_MUX_DIFF_2_3);
 }
 
+
 // --- END OF FILE
+
