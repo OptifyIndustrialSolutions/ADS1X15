@@ -1,30 +1,29 @@
 //
 //    FILE: ADS_differential.ino
 //  AUTHOR: Rob.Tillaart
-// VERSION: 0.1.1
 // PURPOSE: read differential
-//
+//     URL: https://github.com/RobTillaart/ADS1X15
 
-// test 1
-// connect 2 potmeters in series
+//  test 1
+//  connect 2 potmeters in series
 //
-// GND ---[   x   ]------[   y   ]---- 5V
-//            |              |
+//  GND ---[   x   ]------[   y   ]---- 5V
+//             |              |
 //
-// measure at x and y  (connect to AIN0 and AIN1). 
-// x should be lower or equal to y
+//  measure at x and y  (connect to AIN0 and AIN1). 
+//  x should be lower or equal to y
 
-// test 2
-// connect 2 potmeters parallel
+//  test 2
+//  connect 2 potmeters parallel
 //
-// GND ---[   x   ]------ 5V
-//            |
+//  GND ---[   x   ]------ 5V
+//             |
 //
-// GND ---[   y   ]------ 5V
-//            |
+//  GND ---[   y   ]------ 5V
+//             |
 //
-// measure at x and y  (connect to AIN0 and AIN1).
-// range from -VDD .. +VDD are possible
+//  measure at x and y  (connect to AIN0 and AIN1).
+//  range from -VDD .. +VDD are possible
 
 
 #include <ADS1X15.h>
@@ -38,6 +37,8 @@ void setup()
   Serial.println(__FILE__);
   Serial.print("ADS1X15_LIB_VERSION: ");
   Serial.println(ADS1X15_LIB_VERSION);
+
+  Wire.begin();
 
   ADS.begin();
   ADS.setGain(0);
@@ -65,5 +66,5 @@ void loop()
 }
 
 
-// -- END OF FILE --
+//  -- END OF FILE --
 

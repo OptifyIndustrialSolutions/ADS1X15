@@ -1,25 +1,24 @@
 //
 //    FILE: ADS_minimum.ino
 //  AUTHOR: Rob.Tillaart
-// VERSION: 0.1.0
 // PURPOSE: read analog input
-//
+//     URL: https://github.com/RobTillaart/ADS1X15
 
-// test
-// connect 1 potmeter 
+//  test
+//  connect 1 potmeter 
 //
-// GND ---[   x   ]------ 5V
-//            |
+//  GND ---[   x   ]------ 5V
+//             |
 //
-// measure at x (connect to AIN0).
-
-// view with Serial Plotter
+//  measure at x (connect to AIN0).
+//
+//  view with Serial Plotter
 
 
 #include "ADS1X15.h"
 
 
-// choose you sensor
+// choose your sensor
 // ADS1013 ADS(0x48);
 // ADS1014 ADS(0x48);
 // ADS1015 ADS(0x48);
@@ -36,8 +35,10 @@ void setup()
   Serial.print("ADS1X15_LIB_VERSION: ");
   Serial.println(ADS1X15_LIB_VERSION);
 
+  Wire.begin();
+
   ADS.begin();
-  ADS.setGain(0);  // 6.144 volt
+  ADS.setGain(0);  //  6.144 volt
   Serial.println("Voltage");
 }
 
@@ -49,5 +50,5 @@ void loop()
 }
 
 
-// -- END OF FILE --
+//  -- END OF FILE --
 

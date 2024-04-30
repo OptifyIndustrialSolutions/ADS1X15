@@ -1,22 +1,21 @@
 //
-//    FILE: ADS_async_16_channel.ino
-//  AUTHOR: Rob Tillaart
-// PURPOSE: demo reading four ADS1115 modules in parallel
+//    FILE: ADS_1114_four.ino
+//  AUTHOR: Rob.Tillaart
+// PURPOSE: demo reading four ADS1114 modules in parallel
 //     URL: https://github.com/RobTillaart/ADS1X15
 
 
-//  Note all IO with the sensors are guarded by an isConnected()
-//  this is max robust, in non critical application one may either
-//  cache the value or only verify it in setup (least robust).
-//  Less robust may cause the application to hang - watchdog reset ?
+// Note all IO with the sensors are guarded by an isConnected()
+// this is max robust, in non critical application one may either
+// cache the value or only verify it in setup (least robust).
+// Less robust may cause the application to hang - watchdog reset ?
 
 
 #include "ADS1X15.h"
 
 
-ADS1115 ADS[4];
-uint16_t val[16];
-int idx = 0;
+ADS1114 ADS[4];
+uint16_t val[4];
 
 uint32_t last = 0, now = 0;
 
@@ -33,7 +32,7 @@ void setup()
   for (uint8_t i = 0; i < 4; i++)
   {
     uint8_t address = 0x48 + i;
-    ADS[i] = ADS1115(address);
+    ADS[i] = ADS1114(address);
 
     Serial.print(address, HEX);
     Serial.print("  ");
@@ -50,12 +49,12 @@ void loop()
 {
   //  Serial.println(__FUNCTION__);
   //  wait until all is read...
-  while (ADS_read_all());
+  while(ADS_read_all());
 
-  //  we have all values
+  //  we have all values, so process (print) them
   ADS_print_all();
 
-  //  wait a second.
+  //  wait a second, comment this line for more samples.
   delay(1000);
   ADS_request_all();
 }
@@ -66,13 +65,16 @@ void ADS_request_all()
   //  Serial.println(__FUNCTION__);
   for (int i = 0; i < 4; i++)
   {
-    if (ADS[i].isConnected()) ADS[i].requestADC(idx);
+    if (ADS[i].isConnected()) ADS[i].requestADC(0);
+    //  get them evenly spaced in time ...
+    delayMicroseconds(200);
   }
 }
 
 
 bool ADS_read_all()
 {
+  //  Serial.println(__FUNCTION__);
   for (int i = 0; i < 4; i++)
   {
     if (ADS[i].isConnected() && ADS[i].isBusy()) return true;
@@ -83,16 +85,10 @@ bool ADS_read_all()
   {
     if (ADS[i].isConnected())
     {
-      val[i * 4 + idx] = ADS[i].getValue();
+      val[i] = ADS[i].getValue();
     }
   }
-  idx++;
-  if (idx < 4)
-  {
-    ADS_request_all();
-    return true;
-  }
-  idx = 0;
+  ADS_request_all();
   return false;
 }
 
@@ -100,7 +96,7 @@ bool ADS_read_all()
 void ADS_print_all()
 {
   //  Serial.println(__FUNCTION__);
-  //  TIMESTAMP
+  //  print duration since last print.
   now = millis();
   Serial.print(now - last);
   last = now;
@@ -109,16 +105,11 @@ void ADS_print_all()
   //  PRINT ALL VALUES
   for (int i = 0; i < 4; i++)
   {
-    for (int j = 0; j < 4; j++)
-    {
-      Serial.print(val[j * 4 + i]);
-      Serial.print("\t");
-    }
-    Serial.println();
+    Serial.print(val[i]);
+    Serial.print("\t");
   }
   Serial.println();
 }
 
 
 //  -- END OF FILE --
-

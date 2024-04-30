@@ -1,30 +1,28 @@
 //
 //    FILE: ADS_async_differential.ino
 //  AUTHOR: Rob.Tillaart
-// VERSION: 0.1.0
 // PURPOSE: read multiple differential continuously
-//
+//     URL: https://github.com/RobTillaart/ADS1X15
 
-// test
-// connect 4 potmeters
+//  test
+//  connect 4 potmeters
 //
-// GND ---[   x   ]------ 5V
-//            |
+//  GND ---[   x   ]------ 5V
+//             |
 //
-// measure at x  - connect to AIN0..4.
-//
+//  measure at x  - connect to AIN0..4.
 //
 
 
 #include "ADS1X15.h"
 
 
-// choose you sensor
-// ADS1013 ADS(0x48);
-// ADS1014 ADS(0x48);
-// ADS1015 ADS(0x48);
-// ADS1113 ADS(0x48);
-// ADS1114 ADS(0x48);
+//  choose your sensor
+//  ADS1013 ADS(0x48);
+//  ADS1014 ADS(0x48);
+//  ADS1015 ADS(0x48);
+//  ADS1113 ADS(0x48);
+//  ADS1114 ADS(0x48);
 ADS1115 ADS(0x48);
 
 
@@ -40,15 +38,17 @@ void setup()
   Serial.print("ADS1X15_LIB_VERSION: ");
   Serial.println(ADS1X15_LIB_VERSION);
 
-  ADS.begin();
-  ADS.setGain(0);        // 6.144 volt
-  ADS.setDataRate(4);    // medium
+  Wire.begin();
 
-  // single shot mode
+  ADS.begin();
+  ADS.setGain(0);        //  6.144 volt
+  ADS.setDataRate(4);    //  0 = slow   4 = medium   7 = fast
+
+  //  single shot mode
   ADS.setMode(1);
-  // start with first pair
+  //  start with first pair
   pair = 01;
-  // trigger first read
+  //  trigger first read
   ADS.requestADC_Differential_0_1();
 }
 
@@ -64,12 +64,12 @@ void loop()
     Serial.println();
   }
 
-  // do other stuff here
+  //  do other stuff here
   delay(10);
 }
 
 
-// can be changed to hold other differentials reads too.
+//  can be changed to hold other differentials reads too.
 bool handleConversion()
 {
   if (ADS.isReady())
@@ -79,21 +79,21 @@ bool handleConversion()
       val_01 = ADS.getValue();
       pair = 23;
       ADS.requestADC_Differential_2_3();
-      return false;  // only one done
+      return false;  //  only one done
     }
 
-    // last of series to check
+    //  last of series to check
     if (pair == 23)
     {
       val_23 = ADS.getValue();
       pair = 01;
       ADS.requestADC_Differential_0_1();
-      return true;   // both are updated
+      return true;   //  both are updated
     }
   }
-  return false;  // default not all read
+  return false;      //  default not all read
 }
 
 
-// -- END OF FILE --
+//  -- END OF FILE --
 

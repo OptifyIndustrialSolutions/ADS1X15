@@ -1,17 +1,16 @@
 //
 //    FILE: ADS_read_async.ino
 //  AUTHOR: Rob.Tillaart
-// VERSION: 0.1.1
 // PURPOSE: read analog inputs - asynchronous
-//
+//     URL: https://github.com/RobTillaart/ADS1X15
 
-// test
-// connect 1 potmeter per port.
+//  test
+//  connect 1 potmeter per port.
 //
-// GND ---[   x   ]------ 5V
-//            |
+//  GND ---[   x   ]------ 5V
+//             |
 //
-// measure at x (connect to AIN0).
+//  measure at x (connect to AIN0).
 //
 
 
@@ -28,9 +27,11 @@ void setup()
   Serial.print("ADS1X15_LIB_VERSION: ");
   Serial.println(ADS1X15_LIB_VERSION);
 
+  Wire.begin();
+
   ADS.begin();
   ADS.setGain(0);
-  f = ADS.toVoltage();      // voltage factor
+  f = ADS.toVoltage();      //  voltage factor
   ADS.requestADC(0);
 }
 
@@ -40,16 +41,17 @@ void loop()
   if (ADS.isBusy() == false)
   {
     int16_t val_0 = ADS.getValue();
-    ADS.requestADC(0);  // request a new one
+    //  request a new one
+    ADS.requestADC(0);
     Serial.print("\tAnalog0: ");
     Serial.print(val_0);
     Serial.print('\t');
     Serial.println(val_0 * f, 3);
   }
-  // simulate other tasks...
+  //  simulate other tasks...
   delay(2000);
 }
 
 
-// -- END OF FILE --
+//  -- END OF FILE --
 
